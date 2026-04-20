@@ -1,0 +1,20 @@
+[project]
+name = "researchpaperqaproject"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.5.8",
+    "langchain>=1.2.15",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.2",
+    "langgraph>=1.1.8",
+    "pymupdf>=1.27.2.2",
+    "python-dotenv>=1.2.2",
+    "ragas>=0.4.3",
+    "requests>=2.33.1",
+    "sentence-transformers>=5.4.1",
+    "streamlit>=1.56.0",
+    "uuid>=1.30",
+]
