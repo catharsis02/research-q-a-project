@@ -18,3 +18,7 @@ wheels/
 
 screenshots/*
 screenshots
+
+
+.ipynb_checkpoints
+papers/*

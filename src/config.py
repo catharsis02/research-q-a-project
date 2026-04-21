@@ -14,9 +14,9 @@ assert GROQ_API_KEY, (
 
 _MODEL_CANDIDATES = [
     os.getenv("GROQ_MODEL", "").strip(),
+    "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
     "groq/compound",
-    "llama-3.3-70b-versatile",
     "openai/gpt-oss-120b",
     "llama3-8b-8192",
 ]
