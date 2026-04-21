@@ -1,18 +1,13 @@
 import fitz
 import re
 
-
-# Fewer than this many chars usually means a scanned/image-only PDF
-# that PyMuPDF can't extract text from
 MIN_EXTRACTABLE_CHARS = 500
 
-
 def extract_text(source) -> str:
-    """Extract full text from a PDF file path or in-memory file object."""
+    """Extract full text from a PDF source."""
     if isinstance(source, str):
         doc = fitz.open(source)
     else:
-        # Streamlit UploadedFile or BytesIO — read bytes if needed
         data = source.read() if hasattr(source, "read") else source
         doc = fitz.open(stream=data, filetype="pdf")
 
@@ -29,13 +24,12 @@ def extract_text(source) -> str:
         )
     return text
 
-
 def extract_all(sources: dict) -> dict:
-    """Batch-extract text from multiple PDFs. Prints a preview per paper."""
+    """Batch extract text from multiple PDFs."""
     results = {}
     for label, src in sources.items():
         text = extract_text(src)
         results[label] = text
-        print(f"✅ {label}: {len(text)} chars extracted")
+        print(f"{label}: {len(text)} chars extracted")
         print(f"   Preview: {text[:500]}\n")
     return results

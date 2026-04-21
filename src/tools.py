@@ -3,14 +3,12 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-
 def get_datetime() -> str:
     """Return current date/time as a readable string. Never raises."""
     try:
         return f"Current date and time: {datetime.now().strftime('%A, %d %B %Y, %H:%M:%S')}"
     except Exception as exc:
         return f"Datetime error: {exc}"
-
 
 def arxiv_search(topic: str) -> str:
     """Search ArXiv by title for up to 3 results. Never raises."""
@@ -33,7 +31,6 @@ def arxiv_search(topic: str) -> str:
 
     except Exception as exc:
         return f"ArXiv search error: {exc}"
-
 
 def web_research_search(query: str) -> str:
     """Search web research context via DuckDuckGo instant answers. Never raises."""
@@ -61,7 +58,6 @@ def web_research_search(query: str) -> str:
         for item in related:
             if count >= 4:
                 break
-            # RelatedTopics can include grouped entries under "Topics".
             candidates = item.get("Topics", []) if isinstance(item, dict) and "Topics" in item else [item]
             for entry in candidates:
                 if count >= 4:
@@ -80,7 +76,6 @@ def web_research_search(query: str) -> str:
         return "\n\n".join(snippets)
     except Exception as exc:
         return f"Web search error: {exc}"
-
 
 def route_tool(question: str, allow_web_search: bool = True) -> str:
     """Dispatch to the right tool based on question keywords."""

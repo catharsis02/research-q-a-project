@@ -1,11 +1,7 @@
 from src.graph import ask
 
-
 def run_ragas(app, qa_pairs: list[dict], thread_prefix: str = "ragas") -> dict:
-    """Run QA pairs through the agent, then score with RAGAS (or manual fallback).
-
-    qa_pairs: list of {question, ground_truth}
-    """
+    """Run QA pairs and score with RAGAS or fallback scoring."""
     records = []
     for i, pair in enumerate(qa_pairs):
         result = ask(pair["question"], app, thread_id=f"{thread_prefix}_{i}")
@@ -33,13 +29,11 @@ def run_ragas(app, qa_pairs: list[dict], thread_prefix: str = "ragas") -> dict:
         print("RAGAS not installed — falling back to manual LLM scoring")
         return _manual_score(records)
 
-
 def _manual_score(records: list[dict]) -> dict:
     """LLM-based faithfulness scoring when RAGAS isn't available."""
     from src.config import llm
     from langchain_core.messages import HumanMessage
 
-    # Cap context sent to scorer to stay within free-tier limits
     SCORE_CONTEXT_LIMIT = 1000
 
     scores = []

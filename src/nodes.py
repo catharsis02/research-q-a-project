@@ -5,9 +5,22 @@ from langchain_core.messages import SystemMessage, HumanMessage
 import chromadb
 import re
 
-# Keep last N messages to bound memory — enough for multi-turn context
-# without blowing up token counts
 MEMORY_WINDOW = 6
+MULTI_PAPER_HINTS = [
+    "all papers",
+    "all the papers",
+    "explain all papers",
+    "across papers",
+    "between papers",
+    "compare papers",
+    "compare all",
+    "relationship",
+    "relationships",
+    "connect",
+    "common themes",
+    "synthesize",
+    "synthesis",
+]
 
 
 def make_nodes(
@@ -15,11 +28,7 @@ def make_nodes(
     filter_map: dict = None,
     allow_web_search: bool = True,
 ) -> dict:
-    """Return all 8 node functions bound to the given collection.
-
-    Factory pattern avoids global state — critical for Streamlit where
-    each session builds its own KB and needs its own node closures.
-    """
+    """Return node functions bound to the given collection."""
     _filter_map = filter_map or DEFAULT_FILTER_MAP
 
     def memory_node(state: ResearchState) -> ResearchState:
@@ -56,23 +65,48 @@ def make_nodes(
         return state
 
     def retrieval_node(state: ResearchState) -> ResearchState:
+        question_lower = state["question"].lower()
+        broad_multi_paper_query = (
+            not state["paper_filter"]
+            and any(hint in question_lower for hint in MULTI_PAPER_HINTS)
+        )
+
         emb = embedder.encode([state["question"]]).tolist()
-        kwargs = dict(query_embeddings=emb, n_results=3)
+        kwargs = dict(query_embeddings=emb)
         if state["paper_filter"]:
-            kwargs["where"] = {"paper": state["paper_filter"]}
+            kwargs.update(n_results=4, where={"paper": state["paper_filter"]})
+        else:
+            kwargs["n_results"] = 12 if broad_multi_paper_query else 6
 
         results = collection.query(**kwargs)
-        docs = results["documents"][0]
-        metas = results["metadatas"][0]
+        docs = list(results["documents"][0])
+        metas = list(results["metadatas"][0])
+
+        if broad_multi_paper_query and metas:
+            by_paper = {}
+            for doc, meta in zip(docs, metas):
+                by_paper.setdefault(meta["paper"], []).append((doc, meta))
+
+            balanced_pairs = []
+            leftovers = []
+            for items in by_paper.values():
+                balanced_pairs.append(items[0])
+                leftovers.extend(items[1:])
+
+            target_total = min(10, len(docs))
+            balanced_pairs.extend(leftovers[: max(0, target_total - len(balanced_pairs))])
+
+            docs = [doc for doc, _ in balanced_pairs]
+            metas = [meta for _, meta in balanced_pairs]
 
         parts = []
         topics = []
         for doc, meta in zip(docs, metas):
             parts.append(f"[Paper: {meta['paper']} | Topic: {meta['topic']}]\n{doc}")
-            topics.append(meta["topic"])
+            topics.append(f"{meta['paper']} — {meta['topic']}")
 
         state["retrieved"] = "\n\n".join(parts)
-        state["sources"] = topics
+        state["sources"] = list(dict.fromkeys(topics))
         return state
 
     def skip_retrieval_node(state: ResearchState) -> ResearchState:
@@ -107,7 +141,18 @@ def make_nodes(
             len(paper_ids) >= 2
             and any(
                 token in question_text.lower()
-                for token in ["both papers", "relationship", "compare", "across papers", "between"]
+                for token in [
+                    "both papers",
+                    "relationship",
+                    "relationships",
+                    "compare",
+                    "across papers",
+                    "between",
+                    "all papers",
+                    "connect",
+                    "synthesis",
+                    "common themes",
+                ]
             )
         )
 
@@ -122,10 +167,11 @@ def make_nodes(
         if is_cross_paper_request:
             format_rules += (
                 "\n- Use this structure:\n"
-                "  1) 'Paper A' (main idea + key points)\n"
-                "  2) 'Paper B' (main idea + key points)\n"
-                "  3) 'Relationship' (agreements, differences, how ideas connect)\n"
-                "  4) 'Takeaway' (2-4 concise bullets)."
+                "  1) 'Per-Paper Explanations' (one subsection for EACH paper seen in context)\n"
+                "  2) 'Cross-Paper Relationships' (agreements, differences, dependencies, tensions)\n"
+                "  3) 'Theme Map' (common themes vs unique contributions)\n"
+                "  4) 'Takeaways' (3-6 concise bullets).\n"
+                "- If 3 or more papers are present, do not collapse into only two papers."
             )
         if has_math_request:
             format_rules += (
@@ -184,12 +230,10 @@ def make_nodes(
 
     def eval_node(state: ResearchState) -> ResearchState:
         if not state["retrieved"]:
-            # No context to evaluate against — skip scoring
             state["faithfulness"] = 1.0
             state["eval_retries"] += 1
             return state
 
-        # Truncate context to stay within Groq free-tier limits
         EVAL_CONTEXT_LIMIT = 2000
         prompt = (
             "Rate faithfulness of this answer to the context. "

@@ -4,7 +4,6 @@ from src.state import ResearchState, make_initial_state
 from src.nodes import make_nodes
 import chromadb
 
-
 def route_decision(state: ResearchState) -> str:
     r = state.get("route", "")
     if r == "retrieve":
@@ -12,7 +11,6 @@ def route_decision(state: ResearchState) -> str:
     if r == "tool":
         return "tool"
     return "skip"
-
 
 def eval_decision(state: ResearchState) -> str:
     """Retry answer generation if faithfulness is low, up to 2 attempts."""
@@ -26,11 +24,7 @@ def build_graph(
     filter_map: dict = None,
     allow_web_search: bool = True,
 ):
-    """Build and compile the LangGraph StateGraph.
-
-    Called once per Streamlit session after KB is built.
-    Returns a compiled app ready for invoke().
-    """
+    """Build and compile the LangGraph StateGraph."""
     nodes = make_nodes(
         collection,
         filter_map,
@@ -59,9 +53,8 @@ def build_graph(
     )
 
     app = g.compile(checkpointer=MemorySaver())
-    print("✅ Graph compiled successfully")
+    print("Graph compiled successfully")
     return app
-
 
 def ask(question: str, app, thread_id: str = "default") -> ResearchState:
     """Run a question through the compiled graph."""
@@ -69,10 +62,9 @@ def ask(question: str, app, thread_id: str = "default") -> ResearchState:
     initial = make_initial_state(question)
     return app.invoke(initial, config=config)
 
-
 def build_filter_map(paper_meta: dict[str, str]) -> dict[str, str]:
     """Build a filter map from uploaded paper labels only."""
-    fm: dict[str, str] = {}
+    fm = {}
     for label, paper_id in paper_meta.items():
         fm[label.lower()] = paper_id
     return fm

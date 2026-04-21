@@ -6,10 +6,16 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.8",
+    "ipykernel>=7.2.0",
+    "jupyter>=1.1.1",
     "langchain>=1.2.15",
     "langchain-community>=0.4.1",
     "langchain-groq>=1.1.2",
     "langgraph>=1.1.8",
+    "nbclient>=0.10.4",
+    "nbconvert>=7.17.1",
+    "nbformat>=5.10.4",
+    "notebook>=7.5.5",
     "pymupdf>=1.27.2.2",
     "python-dotenv>=1.2.2",
     "ragas>=0.4.3",
