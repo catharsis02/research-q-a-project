@@ -38,6 +38,16 @@ with st.sidebar:
             paper_labels[f.name] = label
 
     st.divider()
+    enable_web_context = st.toggle(
+        "Enable web context",
+        value=False,
+        help="When on, the assistant may use web research snippets for broader context.",
+    )
+    st.caption(
+        "Off = strict local PDFs/ArXiv/date tools only. "
+        "On = allows web search when explicitly requested."
+    )
+    st.divider()
     if st.button("🔄 New Conversation"):
         st.session_state.messages = []
         st.session_state.thread_id = str(uuid.uuid4())
@@ -64,7 +74,12 @@ def versioned_filename(original_name: str, file_bytes: bytes) -> str:
 
 
 @st.cache_resource
-def build_session_resources(_files, labels: dict, _file_hash: str):
+def build_session_resources(
+    _files,
+    labels: dict,
+    _file_hash: str,
+    allow_web_context: bool,
+):
     """Extract text, build KB, run retrieval gate, compile graph.
 
     _files and _file_hash are underscore-prefixed so Streamlit
@@ -98,7 +113,7 @@ def build_session_resources(_files, labels: dict, _file_hash: str):
     retrieval_gate(collection, gate_query=gate_query, expected_paper_id=first_label)
 
     filter_map = build_filter_map(paper_meta)
-    app = build_graph(collection, filter_map)
+    app = build_graph(collection, filter_map, allow_web_search=allow_web_context)
     topics = [d["topic"] for d in collection.get()["metadatas"]]
     return app, paper_meta, topics
 
@@ -119,6 +134,7 @@ with st.spinner("Extracting text, building KB, compiling graph..."):
         _files=uploaded_files,
         labels=paper_labels,
         _file_hash=fhash,
+        allow_web_context=enable_web_context,
     )
 
 st.success(
@@ -141,9 +157,10 @@ with st.sidebar:
 
 # Chat history display
 st.header("Ask questions about your papers")
+st.caption(f"Web context: {'ON' if enable_web_context else 'OFF'}")
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+        st.markdown(msg["content"])
         if msg.get("faithfulness") is not None:
             st.caption(
                 f"Faithfulness: {msg['faithfulness']:.2f} | "
@@ -158,12 +175,12 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Ask anything about your uploaded papers..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.write(prompt)
+        st.markdown(prompt)
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             result = ask(prompt, app, thread_id=st.session_state.thread_id)
-        st.write(result["answer"])
+        st.markdown(result["answer"])
         st.caption(
             f"Faithfulness: {result['faithfulness']:.2f} | "
             f"Route: {result['route']}"

@@ -10,7 +10,11 @@ import re
 MEMORY_WINDOW = 6
 
 
-def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict:
+def make_nodes(
+    collection: chromadb.Collection,
+    filter_map: dict = None,
+    allow_web_search: bool = True,
+) -> dict:
     """Return all 8 node functions bound to the given collection.
 
     Factory pattern avoids global state — critical for Streamlit where
@@ -39,7 +43,7 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
         prompt = (
             "You are a routing agent. Reply with ONE word only. No punctuation.\n"
             "- 'retrieve'    : question asks about paper content, findings, methods, datasets, results, or limitations\n"
-            "- 'tool'        : question asks for today's date OR a live ArXiv search\n"
+            "- 'tool'        : question asks for today's date, a live ArXiv search, OR a web research search\n"
             "- 'memory_only' : greeting, thanks, or follow-up needing no retrieval\n"
             f"Question: {state['question']}\n"
             "Reply with one word only."
@@ -77,7 +81,10 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
         return state
 
     def tool_node(state: ResearchState) -> ResearchState:
-        state["tool_result"] = route_tool(state["question"])
+        state["tool_result"] = route_tool(
+            state["question"],
+            allow_web_search=allow_web_search,
+        )
         return state
 
     def answer_node(state: ResearchState) -> ResearchState:
@@ -92,6 +99,10 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
         question_text = state.get("question", "")
         retrieved_text = state.get("retrieved", "")
         paper_ids = set(re.findall(r"\[Paper:\s*([^\|\]]+)", retrieved_text))
+        has_math_request = any(
+            token in question_text.lower()
+            for token in ["equation", "formula", "derive", "notation", "mathematical", "math", "latex"]
+        ) or bool(re.search(r"[\\\^_{}]|λ|ρ|β|α|μ|∑|∏|≤|≥", question_text + "\n" + retrieved_text))
         is_cross_paper_request = (
             len(paper_ids) >= 2
             and any(
@@ -103,9 +114,10 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
         format_rules = (
             "Formatting:\n"
             "- Use short section headers.\n"
-            "- Prefer concise bullets.\n"
+            "- Use concise but substantive bullets (not one-liners).\n"
             "- Use LaTeX for math ($...$ or $$...$$).\n"
-            "- Keep claims faithful to retrieved excerpts."
+            "- Keep claims faithful to retrieved excerpts.\n"
+            "- Explain symbols in plain language after equations."
         )
         if is_cross_paper_request:
             format_rules += (
@@ -114,6 +126,12 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
                 "  2) 'Paper B' (main idea + key points)\n"
                 "  3) 'Relationship' (agreements, differences, how ideas connect)\n"
                 "  4) 'Takeaway' (2-4 concise bullets)."
+            )
+        if has_math_request:
+            format_rules += (
+                "\n- Include a 'Mathematical Notation' section with key equations in LaTeX.\n"
+                "- Include an 'Interpretation' section explaining what each equation means.\n"
+                "- Include a brief 'Why it matters' section tied to stability/properties discussed in context."
             )
 
         system = (
@@ -129,6 +147,10 @@ def make_nodes(collection: chromadb.Collection, filter_map: dict = None) -> dict
             "7. Never copy raw retrieval wrappers such as '[Paper: ...]'.\n"
             "8. If the user asks multiple questions, answer with a numbered list, one item per question.\n"
             "9. For mathematical expressions, use LaTeX delimiters ($...$ or $$...$$) instead of plain-text symbols when possible.\n"
+            "10. Prefer richer explanations with intuition, not only definitions.\n"
+            "11. Explain as if the reader is an undergraduate student encountering the topic for the first time.\n"
+            "12. Use clear progression: concept -> equation/definition -> interpretation -> practical meaning.\n"
+            "13. Expand slightly with helpful context and examples from the retrieved text, while staying faithful.\n"
             f"{format_rules}"
             + escalation
         )

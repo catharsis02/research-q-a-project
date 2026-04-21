@@ -21,13 +21,21 @@ def eval_decision(state: ResearchState) -> str:
     return "save"
 
 
-def build_graph(collection: chromadb.Collection, filter_map: dict = None):
+def build_graph(
+    collection: chromadb.Collection,
+    filter_map: dict = None,
+    allow_web_search: bool = True,
+):
     """Build and compile the LangGraph StateGraph.
 
     Called once per Streamlit session after KB is built.
     Returns a compiled app ready for invoke().
     """
-    nodes = make_nodes(collection, filter_map)
+    nodes = make_nodes(
+        collection,
+        filter_map,
+        allow_web_search=allow_web_search,
+    )
 
     g = StateGraph(ResearchState)
     for name, fn in nodes.items():
