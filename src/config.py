@@ -14,10 +14,10 @@ assert GROQ_API_KEY, (
 
 _MODEL_CANDIDATES = [
     os.getenv("GROQ_MODEL", "").strip(),
-    "openai/gpt-oss-120b",
-    "groq/compound",
     "llama-3.1-8b-instant",
+    "groq/compound",
     "llama-3.3-70b-versatile",
+    "openai/gpt-oss-120b",
     "llama3-8b-8192",
 ]
 _MODEL_CANDIDATES = [m for m in _MODEL_CANDIDATES if m]
