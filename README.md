@@ -99,15 +99,35 @@ Open `day13_capstone.ipynb` if you want to run the notebook checks and inspect t
 
 ## Project structure
 
+```text
+.
+├── capstone_streamlit.py
+├── day13_capstone.ipynb
+├── main.py
+├── papers/
+├── screenshots/
+├── src/
+│   ├── extractor.py
+│   ├── graph.py
+│   ├── knowledge_base.py
+│   ├── nodes.py
+│   ├── evaluator.py
+│   └── tools.py
+├── requirements.txt
+└── pyproject.toml
+```
+
+Key files:
+
 - `capstone_streamlit.py`: Streamlit UI.
 - `main.py`: Command-line entry point.
+- `day13_capstone.ipynb`: Notebook used for module and integration checks.
 - `src/extractor.py`: PDF extraction and chunking.
 - `src/knowledge_base.py`: ChromaDB collection setup and retrieval gate.
 - `src/graph.py`: LangGraph graph construction and question routing.
 - `src/nodes.py`: Node logic for retrieval, tool use, answering, and memory.
 - `src/evaluator.py`: RAG evaluation helpers.
 - `src/tools.py`: Date, web, and ArXiv helper tools.
-- `day13_capstone.ipynb`: Notebook used for module and integration checks.
 
 ## Requirements and data
 
