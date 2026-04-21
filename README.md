@@ -1,101 +1,128 @@
-# ScholarMind: Agentic RAG for Advanced Research Synthesis
+# Research Paper Q&A
 
-ScholarMind is an advanced Agentic RAG (Retrieval-Augmented Generation) system built on the **LangGraph** framework. It is designed to assist researchers in synthesizing information across multiple PDF documents with high technical precision, iterative self-evaluation, and robust citation grounding.
+This project is a paper-grounded question answering system for research PDFs. It loads uploaded papers, builds a local vector index, routes questions through a LangGraph workflow, and returns answers with sources attached.
 
----
+The codebase includes three ways to use it:
 
-## 🚀 Features
+- a Streamlit app for interactive use
+- a CLI for quick terminal experiments
+- a notebook for module checks and lightweight validation
 
-- **Agentic Information Routing**: Intelligently decides between local knowledge retrieval, external tool use (ArXiv), or conversation memory.
-- **Self-Correcting Evaluation Loop**: Uses a built-in "Eval Node" to audit answer faithfulness and trigger retries if hallucinations are detected.
-- **Multi-Document Synthesis**: Compare and contrast findings across up to 5 uploaded research papers simultaneously.
-- **LaTeX Support**: Preserves and renders complex mathematical formulas with high fidelity.
-- **Persistent Memory**: Uses `MemorySaver` to track conversation context across multiple turns.
+## What the project does
 
----
+- Reads 1 to 5 PDF papers.
+- Extracts text and chunks it for retrieval.
+- Builds a ChromaDB knowledge base.
+- Uses LangGraph to route between retrieval, tools, and memory.
+- Supports local PDF questions and optional web/ArXiv context in the UI.
+- Exposes sources so answers can be checked against the original text.
 
-## 🛠️ Setup Instructions
+## Installation
 
-### Option 1: Standard Pip Setup
-It is highly recommended to use a virtual environment.
+### 1. Create a virtual environment
 
 ```bash
-# Create the environment
 python -m venv .venv
-
-# Activate the environment (Linux/macOS)
 source .venv/bin/activate
+```
 
-# Install dependencies from requirements file
+If you are on Windows, activate the environment with:
+
+```bash
+.venv\Scripts\activate
+```
+
+On Windows PowerShell, use:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If script execution is blocked in PowerShell, run this once in an elevated or user shell:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### 2. Install dependencies
+
+Use one of the following:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Option 2: Using UV (Fastest)
-If you have [uv](https://github.com/astral-sh/uv) installed, you can set up the project instantly:
+or, if you prefer `uv`:
 
 ```bash
-# Synchronize environment and install dependencies
 uv sync
 ```
 
-### 3. Configure API Keys
-ScholarMind uses **Groq** for high-speed inference. You will need a Groq API Key.
+### 3. Configure environment variables
 
-1. Create a `.env` file in the root directory.
-2. Add your API key:
-   ```env
-   GROQ_API_KEY=your_groq_api_key_here
-   ```
+Create a `.env` file in the project root and add your Groq API key:
 
----
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
 
-## 📦 Core Dependencies
+Optional settings:
 
-The following packages are mandatory for the system to function. They will be installed automatically via `requirements.txt` or `uv sync`:
+```env
+GROQ_MODEL=llama-3.1-8b-instant
+```
 
-- `streamlit`: Web interface framework
-- `langgraph`: Agentic workflow orchestration
-- `langchain-groq`: Groq LLM integration
-- `chromadb`: Vector database for RAG
-- `sentence-transformers`: Local embedding generation
-- `pymupdf`: PDF text and metadata extraction
-- `python-dotenv`: Environment variable management
-- `ragas`: RAG evaluation metrics
+If you do not set `GROQ_MODEL`, the project tries a small list of Groq models and picks the first one that works.
 
----
+## Run the project
 
-## 💻 Usage
-
-### Launching the Assistant
-After activating your environment, start the Streamlit web interface:
+### Streamlit app
 
 ```bash
 streamlit run capstone_streamlit.py
 ```
 
-### Interacting with Papers
-1. **Upload**: Drag and drop 1 to 5 research PDFs into the sidebar.
-2. **Label**: (Optional) Provide custom labels for your documents.
-3. **Ask**: Enter your research queries in the chat input (e.g., "Summarize the key findings on neural architecture").
-4. **Verify**: Check the **"Sources"** expander to see exactly which chunks of the papers were used.
+In the sidebar, upload 1 to 5 PDFs, optionally label them, and start asking questions.
 
----
+### CLI version
 
-## 📂 Project Structure
+```bash
+python main.py
+```
 
-- `capstone_streamlit.py`: Main Streamlit UI entry point.
-- `main.py`: CLI version of the assistant.
-- `src/`: 
-    - `graph.py`: LangGraph state machine definition.
-    - `nodes.py`: Implementation of the reasoning nodes.
-    - `knowledge_base.py`: ChromaDB collection management and retrieval gate.
-    - `evaluator.py`: Faithfulness scoring logic.
-    - `extractor.py`: PDF text extraction system.
+The CLI scans the `papers/` folder, builds the index, and then lets you ask questions from the terminal.
 
----
+### Notebook
 
-## 🎓 Author
-**Kanishka**  
-Roll Number: 2306118  
-Bachelor of Technology, KIIT University  
-*Capstone Project - Agentic AI Course 2026*
+Open `day13_capstone.ipynb` if you want to run the notebook checks and inspect the pipeline step by step.
+
+## Project structure
+
+- `capstone_streamlit.py`: Streamlit UI.
+- `main.py`: Command-line entry point.
+- `src/extractor.py`: PDF extraction and chunking.
+- `src/knowledge_base.py`: ChromaDB collection setup and retrieval gate.
+- `src/graph.py`: LangGraph graph construction and question routing.
+- `src/nodes.py`: Node logic for retrieval, tool use, answering, and memory.
+- `src/evaluator.py`: RAG evaluation helpers.
+- `src/tools.py`: Date, web, and ArXiv helper tools.
+- `day13_capstone.ipynb`: Notebook used for module and integration checks.
+
+## Requirements and data
+
+- Python 3.12 or newer.
+- A working Groq API key.
+- PDF papers placed in the `papers/` directory for the CLI and notebook.
+
+The Streamlit app lets you upload PDFs directly, so you do not need to pre-populate `papers/` for that path.
+
+## Notes
+
+- The system is designed to stay grounded in the uploaded papers.
+- When web context is enabled in the UI, it can use ArXiv or web snippets for broader questions.
+- The notebook is intended to validate the modules quickly, not to benchmark model quality.
+
+## Author
+
+Kanishka
